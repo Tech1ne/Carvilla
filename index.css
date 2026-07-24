@@ -1,0 +1,63 @@
+*{
+	font-family: tahoma;
+	color: white;
+}
+
+body{
+	background-color: black;
+	padding: 0px;
+	margin: 0px;
+}
+
+body .navigation{
+	background: grey;
+	display: flex;
+	justify-content: space-between;
+	list-style: none;
+	text-decoration: none;
+	text-align: center;
+	align-items: center;
+	padding: 0px 60px;
+}
+
+.navigation nav ul li{
+	list-style: none;
+	color: gold;
+}
+
+.navigation nav ul{
+	display: flex;
+	gap: 30px;
+}
+
+.navigation nav ul li a{
+	text-decoration: none;
+	transition-duration: 0.2s;
+	border: 0px solid gold;
+	padding-bottom: 5px;
+	font-size: 18px;
+}
+
+.navigation nav ul li a:hover{
+	border-bottom: 2px solid gold;
+	padding-bottom: 2px;
+}
+
+.navigation h3{
+	font-size: 25px;
+}
+
+.navigation h3 span{
+	color: gold;
+}
+
+section h1{
+	color: gold;
+}
+
+.sect_1{
+	height: 100vh;
+	width: auto;
+	display: flex;
+	justify-content: center;
+}
