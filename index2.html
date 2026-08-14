@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carvilla — Premium Automotive Marketplace</title>
+<meta name="description" content="Carvilla: browse, finance, and book test drives on a curated fleet of premium vehicles.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="index.css">
+</head>
+<body>
+
+<div id="toast-stack"></div>
+
+<header>
+  <div class="navbar wrap">
+    <div class="logo"><span class="dot"></span>CARVILLA</div>
+    <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu">☰</button>
+    <ul class="navlinks" id="navLinks">
+      <li><button data-nav="home">Home</button></li>
+      <li><button data-nav="inventory">Inventory</button></li>
+      <li><button data-nav="services">Services</button></li>
+      <li><button data-nav="about">About</button></li>
+      <li><button data-nav="blog">Blog</button></li>
+      <li><button data-nav="contact">Contact</button></li>
+      <li><button data-nav="dashboard">Dashboard</button></li>
+    </ul>
+    <div class="navactions">
+      <button class="icon-btn" id="themeToggle" title="Toggle theme">◐</button>
+      <button class="icon-btn" id="compareIcon" title="Compare">⇄<span class="badge hidden" id="compareBadge">0</span></button>
+      <button class="icon-btn" id="wishlistIcon" title="Wishlist">♥<span class="badge hidden" id="wishBadge">0</span></button>
+      <button class="btn btn-ghost btn-sm" id="loginBtn">Sign in</button>
+    </div>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="logo" style="margin-bottom:12px;"><span class="dot"></span>CARVILLA</div>
+        <p style="color:var(--silver-dim); font-size:14px; max-width:320px; line-height:1.6;">A curated marketplace for premium vehicles — transparent pricing, real financing tools, and a dealership experience built for how people actually shop for cars today.</p>
+        <div class="social-row" style="margin-top:16px;">
+          <a href="#" class="icon-btn" aria-label="Instagram">◎</a>
+          <a href="#" class="icon-btn" aria-label="X">✕</a>
+          <a href="#" class="icon-btn" aria-label="YouTube">▶</a>
+        </div>
+      </div>
+      <div>
+        <h5>Explore</h5>
+        <ul>
+          <li><a data-nav="inventory">Inventory</a></li>
+          <li><a data-nav="services">Services</a></li>
+          <li><a data-nav="blog">Blog</a></li>
+          <li><a data-nav="about">About us</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <ul>
+          <li><a data-nav="dashboard">Dashboard</a></li>
+          <li><a data-modal="login">Sign in</a></li>
+          <li><a data-modal="register">Register</a></li>
+          <li><a data-nav="contact">Support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Legal</h5>
+        <ul>
+          <li><a data-modal="privacy">Privacy policy</a></li>
+          <li><a data-modal="terms">Terms of service</a></li>
+          <li><a data-nav="contact">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Carvilla Motors. All rights reserved.</span>
+      <span class="mono">Built as a front-end demo — no live backend.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ======================================================================
+   CARVILLA — client-side demo app.
+   IMPORTANT: This is HTML/CSS/JS only. There is no server, so:
+   - "Login/Register" is a simulated session (no real passwords/JWT).
+   - "Payments" (Stripe/PayPal) are shown as UI stubs, not wired to real processors.
+   - All data lives in memory (the `state` object below) and resets on reload —
+     nothing is written to localStorage per this environment's constraints.
+   ====================================================================== */
+
+/* ---------- MOCK DATA ---------- */
+// Real, brand-matched vehicle photos (Wikimedia Commons, freely licensed).
+function wm(file, width){ return "https://commons.wikimedia.org/wiki/Special:FilePath/" + encodeURIComponent(file).replace(/%20/g,"_") + "?width=" + (width||900); }
+const BRAND_IMG = {
+  "Audi": wm("Audi A6 3.0 TDI quattro (24598865224).jpg"),
+  "BMW": wm("2022 BMW M4 CSL.jpg"),
+  "Mercedes-Benz": wm("Mercedes-Benz S-Class 2020 W223.jpg"),
+  "Tesla": wm("Tesla Model S (28898945604).jpg"),
+  "Porsche": wm("Porsche 911 Turbo.jpg"),
+  "Lexus": wm("Lexus RX 330.jpg"),
+  "Volvo": wm("Volvo XC90 front.JPG"),
+  "Range Rover": wm("Range Rover Sport Facelift AME.jpg"),
+  "Jaguar": wm("Jaguar F-Pace (front 3-4).JPG"),
+  "Ford": wm("Ford Mustang (2015).JPG")
+};
+const IMGS = Object.values(BRAND_IMG); // used for hero/blog/general imagery
+const BRANDS = ["Audi","BMW","Mercedes-Benz","Tesla","Porsche","Lexus","Volvo","Range Rover","Jaguar","Ford"];
+const BODIES = ["Sedan","SUV","Coupe","Truck","Convertible","Hatchback"];
+const FUELS = ["Gasoline","Hybrid","Electric","Diesel"];
+const TRANS = ["Automatic","Manual"];
+const COLORS = ["Black","White","Silver","Blue","Red","Gray"];
+const MODEL_NAMES = {
+  Audi:["A6","Q7","e-tron GT","RS5"], BMW:["M4","X5","5 Series","iX"], "Mercedes-Benz":["C-Class","GLE","EQS","S-Class"],
+  Tesla:["Model S","Model X","Model 3","Cybertruck"], Porsche:["911","Taycan","Cayenne","Macan"],
+  Lexus:["RX 350","LC 500","ES 300h","GX 550"], Volvo:["XC90","S60","XC40 Recharge","V60"],
+  "Range Rover":["Sport","Velar","Evoque","Defender"], Jaguar:["F-Pace","F-Type","XF","I-Pace"], Ford:["Mustang","F-150","Bronco","Explorer"]
+};
+const FEATURES_POOL = ["Panoramic sunroof","Adaptive cruise control","Heated & ventilated seats","360° camera","Wireless CarPlay","Premium sound system","Lane-keep assist","Massaging front seats","Head-up display","Matrix LED headlights","Air suspension","Wireless charging"];
+
+function seedVehicles(){
+  const list = [];
+  let id = 1;
+  BRANDS.forEach((brand,bi)=>{
+    MODEL_NAMES[brand].forEach((model,mi)=>{
+      const year = 2021 + ((bi+mi)%5);
+      const body = BODIES[(bi+mi)%BODIES.length];
+      const fuel = FUELS[(bi+mi)%FUELS.length];
+      const trans = TRANS[(bi+mi)%TRANS.length];
+      const color = COLORS[(bi+mi)%COLORS.length];
+      const mileage = (id*937)%62000 + 1200;
+      const basePrice = 32000 + (bi*3100) + (mi*2200) + ((id%7)*1500);
+      const discount = id % 4 === 0 ? Math.round(basePrice*0.06) : 0;
+      const hp = 220 + ((bi+mi)*23)%260;
+      const img = BRAND_IMG[brand];
+      const img2 = BRAND_IMG[brand];
+      const img3 = BRAND_IMG[brand];
+      list.push({
+        id, brand, model, year, body, fuel, trans, color, mileage,
+        price: basePrice, discount, hp,
+        engine: fuel==="Electric" ? "Dual Motor AWD" : (["2.0L Turbo I4","3.0L Turbo I6","4.0L V8"][id%3]),
+        vin: "CVL" + (100000+id*37).toString(36).toUpperCase(),
+        images:[img,img2,img3],
+        features: shuffle(FEATURES_POOL).slice(0,5),
+        description: `A well-kept ${year} ${brand} ${model} finished in ${color.toLowerCase()}, offered with full service history and a Carvilla certified inspection.`,
+        rating: (3.8 + ((id*13)%12)/10).toFixed(1),
+        reviews: 6 + (id*7)%40,
+        available: id % 11 !== 0,
+        arrival: id % 5 === 0
+      });
+      id++;
+    });
+  });
+  return list;
+}
+function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+
+const state = {
+  route: "home",
+  vehicles: seedVehicles(),
+  wishlist: new Set(),
+  compare: new Set(),
+  user: null,
+  bookings: [],
+  loanApps: [],
+  reviews: [],
+  filters: { brand:new Set(), body:new Set(), fuel:new Set(), trans:new Set(), priceMax:120000, yearMin:2021 },
+  sort: "newest",
+  view: "grid",
+  page: 1,
+  perPage: 9,
+  detailId: null,
+  detailTab: "overview",
+  activeThumb: 0,
+  blogQuery: ""
+};
+
+/* ---------- HELPERS ---------- */
+const $ = (sel,ctx=document)=>ctx.querySelector(sel);
+const $$ = (sel,ctx=document)=>[...ctx.querySelectorAll(sel)];
+const fmt$ = n => "$" + Math.round(n).toLocaleString("en-US");
+function toast(msg){
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg;
+  $("#toast-stack").appendChild(el);
+  setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .3s"; setTimeout(()=>el.remove(),300); }, 3200);
+}
+function go(route, params={}){
+  state.route = route;
+  Object.assign(state, params);
+  render();
+  window.scrollTo({top:0, behavior:"instant"});
+  $$("#navLinks button").forEach(b=> b.classList.toggle("active", b.dataset.nav===route));
+  $("#navLinks").classList.remove("open");
+}
+document.addEventListener("click", e=>{
+  const navBtn = e.target.closest("[data-nav]");
+  if(navBtn){ e.preventDefault(); go(navBtn.dataset.nav); }
+  const modalBtn = e.target.closest("[data-modal]");
+  if(modalBtn){ e.preventDefault(); openModal(modalBtn.dataset.modal); }
+});
+$("#mobileToggle").onclick = ()=> $("#navLinks").classList.toggle("open");
+$("#themeToggle").onclick = ()=>{
+  const cur = document.documentElement.getAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme", cur==="light" ? "dark" : "light");
+};
+$("#loginBtn").onclick = ()=> openModal(state.user ? "account" : "login");
+$("#wishlistIcon").onclick = ()=> go("inventory", {wishlistOnly:true});
+$("#compareIcon").onclick = ()=> openCompareModal();
+
+/* ---------- MODALS ---------- */
+function openModal(type){
+  const root = document.createElement("div");
+  root.className = "modal-backdrop";
+  root.id = "modalBackdrop";
+  root.innerHTML = `<div class="modal">${modalContent(type)}</div>`;
+  document.body.appendChild(root);
+  root.addEventListener("click", e=>{ if(e.target===root) closeModal(); });
+  wireModal(type, root);
+}
+function closeModal(){ $("#modalBackdrop")?.remove(); }
+function modalContent(type){
+  if(type==="login") return `
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 style="font-size:24px; margin-bottom:4px;">Sign in</h3>
+    <p style="color:var(--silver-dim); font-size:13.5px; margin-bottom:18px;">Demo auth — any email/password works.</p>
+    <form id="loginForm">
+      <div class="form-row"><label>Email</label><input type="email" required placeholder="you@example.com"></div>
+      <div class="form-row"><label>Password</label><input type="password" required placeholder="••••••••"></div>
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+      <button type="button" class="btn btn-ghost btn-block" style="margin-top:10px;" id="googleLogin">Continue with Google</button>
+      <p style="text-align:center; margin-top:14px; font-size:13px; color:var(--silver-dim);">No account? <a data-modal="register" style="color:var(--chrome);" onclick="closeModal()">Register</a> · <a data-modal="forgot" style="color:var(--chrome);" onclick="closeModal()">Forgot password?</a></p>
+    </form>`;
+  if(type==="register") return `
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 style="font-size:24px; margin-bottom:4px;">Create account</h3>
+    <p style="color:var(--silver-dim); font-size:13.5px; margin-bottom:18px;">Demo registration — no data leaves your browser.</p>
+    <form id="registerForm">
+      <div class="two-col">
+        <div class="form-row"><label>First name</label><input required></div>
+        <div class="form-row"><label>Last name</label><input required></div>
+      </div>
+      <div class="form-row"><label>Email</label><input type="email" required></div>
+      <div class="form-row"><label>Password</label><input type="password" required minlength="6"></div>
+      <button class="btn btn-primary btn-block" type="submit">Create account</button>
+      <p style="text-align:center; margin-top:14px; font-size:13px; color:var(--silver-dim);">Already have an account? <a data-modal="login" style="color:var(--chrome);" onclick="closeModal()">Sign in</a></p>
+    </form>`;
+  if(type==="forgot") return `
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 style="font-size:22px; margin-bottom:4px;">Reset password</h3>
+    <p style="color:var(--silver-dim); font-size:13.5px; margin-bottom:18px;">Enter your email and we'll send a reset link (simulated).</p>
+    <form id="forgotForm">
+      <div class="form-row"><label>Email</label><input type="email" required></div>
+      <button class="btn btn-primary btn-block" type="submit">Send reset link</button>
+    </form>`;
+  if(type==="account") return `
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 style="font-size:22px; margin-bottom:14px;">Your account</h3>
+    <p style="font-size:14px; margin-bottom:4px;"><strong>${state.user.name}</strong></p>
+    <p style="font-size:13.5px; color:var(--silver-dim); margin-bottom:18px;">${state.user.email}</p>
+    <button class="btn btn-ghost btn-block" id="logoutBtn">Sign out</button>`;
+  if(type==="privacy") return `<button class="modal-close" onclick="closeModal()">✕</button><h3 style="font-size:22px;margin-bottom:12px;">Privacy policy</h3><p style="color:var(--silver-dim); font-size:14px; line-height:1.7;">This is a front-end demo. No personal data is transmitted to any server or stored beyond your current browser session — everything resets on reload.</p>`;
+  if(type==="terms") return `<button class="modal-close" onclick="closeModal()">✕</button><h3 style="font-size:22px;margin-bottom:12px;">Terms of service</h3><p style="color:var(--silver-dim); font-size:14px; line-height:1.7;">Demo content for illustration only. Vehicle listings, pricing, and availability are not real and do not constitute an offer for sale.</p>`;
+  if(type==="testdrive") return testDriveModal();
+  if(type==="tradein") return tradeInModal();
+  if(type==="loan") return loanModal();
+  if(type==="review") return reviewModal();
+  return "";
+}
+function wireModal(type, root){
+  if(type==="login") $("#loginForm",root).onsubmit = e=>{ e.preventDefault(); const email=$("input[type=email]",root).value; state.user={name:email.split("@")[0],email}; toast("Signed in as "+state.user.name); closeModal(); render(); };
+  if(type==="register") $("#registerForm",root).onsubmit = e=>{ e.preventDefault(); const inputs=$$("input",root); state.user={name:inputs[0].value+" "+inputs[1].value, email:inputs[2].value}; toast("Account created — welcome!"); closeModal(); render(); };
+  if(type==="forgot") $("#forgotForm",root).onsubmit = e=>{ e.preventDefault(); toast("Reset link sent (simulated)."); closeModal(); };
+  if(type==="account") $("#logoutBtn",root).onclick = ()=>{ state.user=null; toast("Signed out."); closeModal(); render(); };
+  const googleBtn = $("#googleLogin",root); if(googleBtn) googleBtn.onclick=()=>{ state.user={name:"Google User", email:"user@gmail.com"}; toast("Signed in with Google"); closeModal(); render(); };
+  wireTestDrive(root); wireTradeIn(root); wireLoan(root); wireReview(root);
+}
+
+function testDriveModal(){
+  const v = state.vehicles.find(v=>v.id===state.detailId);
+  return `
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <h3 style="font-size:22px; margin-bottom:4px;">Book a test drive</h3>
+  <p style="color:var(--silver-dim); font-size:13.5px; margin-bottom:18px;">${v.year} ${v.brand} ${v.model}</p>
+  <form id="tdForm">
+    <div class="form-row"><label>Full name</label><input required></div>
+    <div class="two-col">
+      <div class="form-row"><label>Date</label><input type="date" required></div>
+      <div class="form-row"><label>Time</label><input type="time" required></div>
+    </div>
+    <div class="form-row"><label>Phone</label><input type="tel" required placeholder="(555) 123-4567"></div>
+    <button class="btn btn-primary btn-block" type="submit">Request booking</button>
+  </form>`;
+}
+function wireTestDrive(root){
+  const f = $("#tdForm",root); if(!f) return;
+  f.onsubmit = e=>{
+    e.preventDefault();
+    const v = state.vehicles.find(v=>v.id===state.detailId);
+    const inputs = $$("input",f);
+    state.bookings.push({ vehicle:`${v.year} ${v.brand} ${v.model}`, date:inputs[1].value, time:inputs[2].value, status:"pending" });
+    toast("Test drive requested — pending admin approval. Confirmation email simulated.");
+    closeModal();
+  };
+}
+function tradeInModal(){
+  return `
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <h3 style="font-size:22px; margin-bottom:4px;">Value your trade-in</h3>
+  <p style="color:var(--silver-dim); font-size:13.5px; margin-bottom:18px;">Get an instant estimate.</p>
+  <form id="tradeForm">
+    <div class="two-col">
+      <div class="form-row"><label>Make</label><input required></div>
+      <div class="form-row"><label>Model</label><input required></div>
+    </div>
+    <div class="two-col">
+      <div class="form-row"><label>Year</label><input type="number" min="1990" max="2026" required></div>
+      <div class="form-row"><label>Mileage</label><input type="number" min="0" required></div>
+    </div>
+    <div class="form-row"><label>Vehicle photo (optional)</label><input type="file" accept="image/*"></div>
+    <button class="btn btn-primary btn-block" type="submit">Get estimate</button>
+    <div id="tradeResult"></div>
+  </form>`;
+}
+function wireTradeIn(root){
+  const f = $("#tradeForm",root); if(!f) return;
+  f.onsubmit = e=>{
+    e.preventDefault();
+    const inputs = $$("input",f);
+    const year = +inputs[2].value, mileage = +inputs[3].value;
+    const base = 8000 + (year-1990)*650;
+    const est = Math.max(1500, Math.round(base - mileage*0.04));
+    $("#tradeResult",f).innerHTML = `<div class="calc-result" style="margin-top:16px;"><span>Estimated value</span><span class="amt">${fmt$(est)}</span></div>`;
+    toast("Trade-in estimate generated.");
+  };
+}
+function loanModal(){
+  return `
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <h3 style="font-size:22px; margin-bottom:4px;">Loan application</h3>
+  <p style="color:var(--silver-dim); font-size:13.5px; margin-bottom:18px;">Pre-qualify without affecting your credit score.</p>
+  <form id="loanForm">
+    <div class="form-row"><label>Full name</label><input required></div>
+    <div class="form-row"><label>Annual income</label><input type="number" required></div>
+    <div class="two-col">
+      <div class="form-row"><label>Down payment</label><input type="number" required value="4000"></div>
+      <div class="form-row"><label>Loan term (months)</label><select><option>36</option><option>48</option><option selected>60</option><option>72</option></select></div>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">Submit application</button>
+  </form>`;
+}
+function wireLoan(root){
+  const f = $("#loanForm",root); if(!f) return;
+  f.onsubmit = e=>{ e.preventDefault(); state.loanApps.push({status:"pending"}); toast("Loan application submitted for review."); closeModal(); };
+}
+function reviewModal(){
+  return `
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <h3 style="font-size:22px; margin-bottom:14px;">Leave a review</h3>
+  <div class="form-row"><label>Your rating</label>
+    <div class="rating-input" id="starInput">${[1,2,3,4,5].map(n=>`<span data-n="${n}">★</span>`).join("")}</div>
+  </div>
+  <form id="reviewForm">
+    <div class="form-row"><label>Name</label><input required></div>
+    <div class="form-row"><label>Review</label><input required placeholder="Share your experience..."></div>
+    <button class="btn btn-primary btn-block" type="submit">Submit review</button>
+  </form>`;
+}
+function wireReview(root){
+  const stars = $("#starInput",root); if(!stars) return;
+  let rating = 0;
+  stars.onclick = e=>{
+    const s = e.target.closest("span"); if(!s) return;
+    rating = +s.dataset.n;
+    $$("span",stars).forEach(el=> el.classList.toggle("on", +el.dataset.n<=rating));
+  };
+  $("#reviewForm",root).onsubmit = e=>{
+    e.preventDefault();
+    const v = state.vehicles.find(v=>v.id===state.detailId);
+    state.reviews.push({vehicleId:v.id, rating:rating||5, name:$$("input",e.target)[0].value, text:$$("input",e.target)[1].value});
+    toast("Review posted — thank you!");
+    closeModal(); render();
+  };
+}
+function openCompareModal(){
+  if(state.compare.size===0){ toast("Add vehicles to compare from Inventory."); return; }
+  const cars = [...state.compare].map(id=>state.vehicles.find(v=>v.id===id));
+  const rows = [
+    ["Price", c=>fmt$(c.price-c.discount)],["Year", c=>c.year],["Mileage", c=>c.mileage.toLocaleString()+" mi"],
+    ["Engine", c=>c.engine],["Horsepower", c=>c.hp+" hp"],["Fuel", c=>c.fuel],["Transmission", c=>c.trans]
+  ];
+  const root = document.createElement("div");
+  root.className="modal-backdrop"; root.id="modalBackdrop";
+  root.innerHTML = `<div class="modal" style="max-width:720px;">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 style="font-size:22px; margin-bottom:16px;">Compare vehicles</h3>
+    <div style="overflow-x:auto;"><table class="spec-table" style="min-width:${cars.length*160}px;">
+    <tr><td></td>${cars.map(c=>`<td style="font-weight:700;">${c.brand} ${c.model}</td>`).join("")}</tr>
+    ${rows.map(([label,fn])=>`<tr><td>${label}</td>${cars.map(c=>`<td>${fn(c)}</td>`).join("")}</tr>`).join("")}
+    </table></div>
+  </div>`;
+  document.body.appendChild(root);
+  root.addEventListener("click", e=>{ if(e.target===root) closeModal(); });
+}
+
+/* ---------- RENDER ROUTER ---------- */
+function render(){
+  const app = $("#app");
+  const routes = { home:renderHome, inventory:renderInventory, detail:renderDetail, about:renderAbout, services:renderServices, blog:renderBlog, contact:renderContact, dashboard:renderDashboard };
+  app.innerHTML = (routes[state.route]||renderHome)();
+  updateBadges();
+  wireRouteEvents();
+  renderCompareBar();
+}
+function updateBadges(){
+  const w = $("#wishBadge"), c = $("#compareBadge");
+  w.textContent = state.wishlist.size; w.classList.toggle("hidden", state.wishlist.size===0);
+  c.textContent = state.compare.size; c.classList.toggle("hidden", state.compare.size===0);
+}
+function renderCompareBar(){
+  $("#compareBarEl")?.remove();
+  if(state.compare.size===0) return;
+  const cars = [...state.compare].map(id=>state.vehicles.find(v=>v.id===id));
+  const bar = document.createElement("div");
+  bar.className="compare-bar"; bar.id="compareBarEl";
+  bar.innerHTML = `<strong style="font-family:var(--mono); font-size:12px; color:var(--silver-dim);">COMPARE (${cars.length}/3)</strong>
+    <div style="display:flex; gap:8px; flex:1; flex-wrap:wrap;">
+    ${cars.map(c=>`<div class="compare-thumb">${c.brand} ${c.model}<button data-uncompare="${c.id}">✕</button></div>`).join("")}
+    </div>
+    <button class="btn btn-chrome btn-sm" id="viewCompareBtn">View comparison</button>`;
+  document.body.appendChild(bar);
+  $("#viewCompareBtn").onclick = openCompareModal;
+  $$("[data-uncompare]",bar).forEach(b=> b.onclick = ()=>{ state.compare.delete(+b.dataset.uncompare); render(); });
+}
+
+/* ---------- CARD BUILDER ---------- */
+function carCard(v){
+  const isFav = state.wishlist.has(v.id);
+  const finalPrice = v.price - v.discount;
+  return `
+  <div class="car-card">
+    <div class="img-wrap" data-open-detail="${v.id}">
+      <img src="${v.images[0]}" alt="${v.year} ${v.brand} ${v.model}" loading="lazy">
+      ${v.arrival ? '<span class="car-tag">NEW ARRIVAL</span>' : (v.discount ? `<span class="car-tag">SAVE ${fmt$(v.discount)}</span>` : '')}
+      <button class="fav-btn ${isFav?'active':''}" data-fav="${v.id}" aria-label="Toggle wishlist">♥</button>
+    </div>
+    <div class="car-body">
+      <div class="make">${v.brand}</div>
+      <h3 data-open-detail="${v.id}" style="cursor:pointer;">${v.year} ${v.model}</h3>
+      <div class="car-specs">
+        <span>${v.mileage.toLocaleString()} mi</span><span>${v.trans}</span><span>${v.fuel}</span><span>${v.body}</span>
+      </div>
+      <div class="car-price-row">
+        <div class="price">${v.discount?`<span class="old-price">${fmt$(v.price)}</span>`:''}${fmt$(finalPrice)}<small> · ${v.available?'in stock':'sold'}</small></div>
+        <button class="btn btn-sm ${state.compare.has(v.id)?'btn-chrome':'btn-ghost'}" data-compare="${v.id}">⇄</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  const featured = state.vehicles.slice(0,4);
+  const arrivals = state.vehicles.filter(v=>v.arrival).slice(0,4);
+  return `
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow">CERTIFIED · CURATED · CARVILLA</div>
+        <h1>Find your next car<br>without the <span class="accent">dealership dance.</span></h1>
+        <p class="lead">Transparent pricing, real financing math, and a fleet inspected to a 150-point standard. Browse ${state.vehicles.length} vehicles currently in our network.</p>
+        <div class="hero-ctas">
+          <button class="btn btn-primary" data-nav="inventory">Browse inventory</button>
+          <button class="btn btn-ghost" data-modal="loan">Get pre-qualified</button>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="${IMGS[0]}" alt="Featured vehicle">
+        <div class="gauge-float">
+          <div class="gauge"><div class="num">4.2s</div><div class="lbl">0–60 mph</div></div>
+          <div class="gauge"><div class="num">523</div><div class="lbl">Horsepower</div></div>
+          <div class="gauge"><div class="num">${state.vehicles.length}</div><div class="lbl">In stock</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="search-panel">
+        <div class="field"><label>Make</label><select id="hsMake"><option value="">Any make</option>${BRANDS.map(b=>`<option>${b}</option>`).join("")}</select></div>
+        <div class="field"><label>Model</label><input id="hsModel" placeholder="Any model" list="modelList"></div>
+        <div class="field"><label>Max price</label><select id="hsPrice"><option value="">Any price</option>${[30000,50000,70000,100000].map(p=>`<option value="${p}">Under ${fmt$(p)}</option>`).join("")}</select></div>
+        <div class="field"><label>Year</label><select id="hsYear"><option value="">Any year</option>${[2021,2022,2023,2024,2025].map(y=>`<option>${y}</option>`).join("")}</select></div>
+        <div class="field"><label>Fuel type</label><select id="hsFuel"><option value="">Any fuel</option>${FUELS.map(f=>`<option>${f}</option>`).join("")}</select></div>
+        <button class="btn btn-primary" id="hsSearchBtn">Search</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section wrap">
+    <div class="section-head"><div><h2>Featured vehicles</h2><p>Hand-picked from this week's arrivals and top-rated listings.</p></div>
+    <button class="btn btn-ghost btn-sm" data-nav="inventory">View all →</button></div>
+    <div class="grid cols-4">${featured.map(carCard).join("")}</div>
+  </section>
+
+  <div class="wrap"><div class="tick-rule"></div></div>
+
+  <section class="page-section wrap">
+    <div class="section-head"><div><h2>Latest arrivals</h2><p>Just landed in our inventory.</p></div></div>
+    <div class="grid cols-4">${arrivals.map(carCard).join("")}</div>
+  </section>
+
+  <section class="page-section wrap">
+    <div class="section-head"><h2>Browse by brand</h2></div>
+    <div class="brand-strip">${BRANDS.map(b=>`<button class="brand-pill" data-brand-jump="${b}">${b}</button>`).join("")}</div>
+  </section>
+
+  <section class="page-section wrap">
+    <div class="section-head"><h2>Why choose Carvilla</h2></div>
+    <div class="grid cols-4">
+      ${[
+        ["✓","150-point inspection","Every vehicle is independently inspected before it's listed — full report included."],
+        ["⚡","Instant financing math","See your real monthly payment before you ever talk to anyone."],
+        ["↺","7-day return window","Not the right fit? Return it within a week, no questions asked."],
+        ["◎","Transparent pricing","No hidden fees, no last-minute add-ons at signing."]
+      ].map(([ic,t,d])=>`<div class="feature-card"><div class="ic">${ic}</div><h4>${t}</h4><p>${d}</p></div>`).join("")}
+    </div>
+  </section>
+
+  <section class="page-section wrap">
+    <div class="section-head"><h2>What drivers say</h2></div>
+    <div class="grid cols-3">
+      ${[
+        ["Maria D.","Bought a Tesla Model 3","The financing calculator matched the dealer's number exactly. No surprises at signing."],
+        ["Jonas K.","Traded in a 2019 Explorer","Trade-in estimate was close to what I got in person. Saved me a wasted trip."],
+        ["Priya S.","Leased a BMW X5","Booked a test drive in two minutes from my phone. Whole process felt modern."]
+      ].map(([n,r,q])=>`<div class="testi-card"><div class="stars">★★★★★</div><p class="quote">"${q}"</p><div class="testi-who"><div class="avatar">${n[0]}</div><div><div class="who-name">${n}</div><div class="who-role">${r}</div></div></div></div>`).join("")}
+    </div>
+  </section>
+
+  <section class="page-section wrap">
+    <div class="finance-band">
+      <div>
+        <div class="eyebrow">FINANCING</div>
+        <h2 style="font-size:34px; margin-top:8px;">Know your payment before you shop.</h2>
+        <p style="color:var(--silver-dim); margin-top:12px; line-height:1.6;">Run the numbers on any vehicle's detail page, or apply for pre-qualification now — it won't affect your credit score.</p>
+        <button class="btn btn-primary" style="margin-top:20px;" data-modal="loan">Apply for financing</button>
+      </div>
+      <div class="feature-card" style="background:var(--panel-2);">
+        <h4 style="margin-bottom:14px;">Quick estimate</h4>
+        <div class="form-row"><label>Vehicle price</label><input type="number" id="qePrice" value="45000"></div>
+        <div class="calc-row">
+          <div class="form-row"><label>Down payment</label><input type="number" id="qeDown" value="5000"></div>
+          <div class="form-row"><label>APR %</label><input type="number" id="qeApr" value="6.5" step="0.1"></div>
+        </div>
+        <div class="calc-result"><span>Est. monthly (60 mo)</span><span class="amt" id="qeResult">$772</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap newsletter">
+    <div><h3 style="font-size:22px;">Get new arrivals in your inbox</h3><p style="color:var(--silver-dim); font-size:14px; margin-top:4px;">One email a week, unsubscribe anytime.</p></div>
+    <form id="newsletterForm"><input type="email" required placeholder="you@example.com"><button class="btn btn-primary" type="submit">Subscribe</button></form>
+  </section>
+  <datalist id="modelList">${Object.values(MODEL_NAMES).flat().map(m=>`<option value="${m}">`).join("")}</datalist>
+  `;
+}
+
+/* ---------- INVENTORY ---------- */
+function filteredVehicles(){
+  let list = [...state.vehicles];
+  if(state.wishlistOnly) list = list.filter(v=>state.wishlist.has(v.id));
+  if(state.filters.brand.size) list = list.filter(v=>state.filters.brand.has(v.brand));
+  if(state.filters.body.size) list = list.filter(v=>state.filters.body.has(v.body));
+  if(state.filters.fuel.size) list = list.filter(v=>state.filters.fuel.has(v.fuel));
+  if(state.filters.trans.size) list = list.filter(v=>state.filters.trans.has(v.trans));
+  list = list.filter(v=> (v.price-v.discount) <= state.filters.priceMax && v.year >= state.filters.yearMin);
+  if(state.searchQuery) list = list.filter(v=> (v.brand+" "+v.model).toLowerCase().includes(state.searchQuery.toLowerCase()));
+  if(state.sort==="lowest") list.sort((a,b)=>(a.price-a.discount)-(b.price-b.discount));
+  if(state.sort==="highest") list.sort((a,b)=>(b.price-b.discount)-(a.price-a.discount));
+  if(state.sort==="newest") list.sort((a,b)=>b.year-a.year);
+  if(state.sort==="oldest") list.sort((a,b)=>a.year-b.year);
+  return list;
+}
+function renderInventory(){
+  const all = filteredVehicles();
+  const totalPages = Math.max(1, Math.ceil(all.length/state.perPage));
+  state.page = Math.min(state.page, totalPages);
+  const pageItems = all.slice((state.page-1)*state.perPage, state.page*state.perPage);
+  const chk = (set,val)=> set.has(val) ? "checked" : "";
+  return `
+  <section class="page-section wrap">
+    <div class="section-head">
+      <div><h2>Inventory</h2><p>${state.wishlistOnly ? "Vehicles you've saved." : "Filter and sort the full Carvilla fleet."}</p></div>
+      <div class="field" style="min-width:240px;"><input id="invSearch" placeholder="Search make or model…" value="${state.searchQuery||''}"></div>
+    </div>
+    <div class="inv-layout">
+      <aside class="filters">
+        <h4>Brand</h4>
+        ${BRANDS.map(b=>`<label class="chk-row"><input type="checkbox" data-f="brand" value="${b}" ${chk(state.filters.brand,b)}> ${b}</label>`).join("")}
+        <h4>Body style</h4>
+        ${BODIES.map(b=>`<label class="chk-row"><input type="checkbox" data-f="body" value="${b}" ${chk(state.filters.body,b)}> ${b}</label>`).join("")}
+        <h4>Fuel type</h4>
+        ${FUELS.map(b=>`<label class="chk-row"><input type="checkbox" data-f="fuel" value="${b}" ${chk(state.filters.fuel,b)}> ${b}</label>`).join("")}
+        <h4>Transmission</h4>
+        ${TRANS.map(b=>`<label class="chk-row"><input type="checkbox" data-f="trans" value="${b}" ${chk(state.filters.trans,b)}> ${b}</label>`).join("")}
+        <h4>Max price: <span class="mono" id="priceLabel">${fmt$(state.filters.priceMax)}</span></h4>
+        <input type="range" id="priceRange" min="20000" max="120000" step="1000" value="${state.filters.priceMax}">
+        <h4>Year: ${state.filters.yearMin}+</h4>
+        <input type="range" id="yearRange" min="2021" max="2025" step="1" value="${state.filters.yearMin}">
+        <button class="btn btn-ghost btn-block" style="margin-top:16px;" id="clearFilters">Clear filters</button>
+      </aside>
+      <div>
+        <div class="toolbar">
+          <span class="result-count">${all.length} vehicles found</span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <select id="sortSelect">
+              <option value="newest" ${state.sort==="newest"?"selected":""}>Newest</option>
+              <option value="oldest" ${state.sort==="oldest"?"selected":""}>Oldest</option>
+              <option value="lowest" ${state.sort==="lowest"?"selected":""}>Lowest price</option>
+              <option value="highest" ${state.sort==="highest"?"selected":""}>Highest price</option>
+            </select>
+            <div class="view-toggle">
+              <button data-view="grid" class="${state.view==='grid'?'active':''}">Grid</button>
+              <button data-view="list" class="${state.view==='list'?'active':''}">List</button>
+            </div>
+          </div>
+        </div>
+        ${pageItems.length===0 ? `<div class="empty-state"><div class="ic">🔍</div><p>No vehicles match those filters. Try clearing a few.</p></div>` :
+          state.view==="grid" ? `<div class="grid cols-3">${pageItems.map(carCard).join("")}</div>`
+          : `<div style="display:flex; flex-direction:column; gap:14px;">${pageItems.map(listRow).join("")}</div>`
+        }
+        ${totalPages>1 ? `<div class="pagination">${Array.from({length:totalPages},(_,i)=>`<button class="${state.page===i+1?'active':''}" data-page="${i+1}">${i+1}</button>`).join("")}</div>` : ""}
+      </div>
+    </div>
+  </section>`;
+}
+function listRow(v){
+  const finalPrice = v.price - v.discount;
+  return `<div class="list-row">
+    <img src="${v.images[0]}" alt="${v.brand} ${v.model}" data-open-detail="${v.id}" style="cursor:pointer;">
+    <div>
+      <div class="make">${v.brand}</div>
+      <h3 data-open-detail="${v.id}" style="cursor:pointer; font-size:19px;">${v.year} ${v.model}</h3>
+      <div class="car-specs">${v.mileage.toLocaleString()} mi · ${v.trans} · ${v.fuel} · ${v.body} · ${v.color}</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="price">${fmt$(finalPrice)}</div>
+      <button class="btn btn-sm btn-ghost" style="margin-top:8px;" data-fav="${v.id}">${state.wishlist.has(v.id)?'♥ Saved':'♡ Save'}</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- DETAIL ---------- */
+function renderDetail(){
+  const v = state.vehicles.find(v=>v.id===state.detailId) || state.vehicles[0];
+  const finalPrice = v.price - v.discount;
+  const similar = state.vehicles.filter(x=>x.brand===v.brand && x.id!==v.id).slice(0,3);
+  const vReviews = state.reviews.filter(r=>r.vehicleId===v.id);
+  return `
+  <section class="page-section wrap">
+    <div class="eyebrow" style="margin-bottom:10px; cursor:pointer;" data-nav="inventory">← Back to inventory</div>
+    <div class="detail-layout">
+      <div>
+        <div class="gallery-main" id="galleryMain"><img src="${v.images[state.activeThumb]}" alt="${v.brand} ${v.model}"></div>
+        <div class="thumb-row">${v.images.map((img,i)=>`<img src="${img}" class="${i===state.activeThumb?'active':''}" data-thumb="${i}">`).join("")}</div>
+        <div class="viewer-360">◐ 360° viewer — drag to rotate (placeholder for interactive model)</div>
+
+        <div class="tabs">
+          <button class="${state.detailTab==='overview'?'active':''}" data-tab="overview">Overview</button>
+          <button class="${state.detailTab==='specs'?'active':''}" data-tab="specs">Specifications</button>
+          <button class="${state.detailTab==='reviews'?'active':''}" data-tab="reviews">Reviews (${vReviews.length})</button>
+        </div>
+        ${state.detailTab==='overview' ? `
+          <p style="color:var(--silver); line-height:1.7; font-size:15px;">${v.description}</p>
+          <h4 style="margin-top:20px; margin-bottom:10px; font-size:16px;">Features</h4>
+          <div class="feature-chips">${v.features.map(f=>`<span>${f}</span>`).join("")}</div>
+        ` : ""}
+        ${state.detailTab==='specs' ? `
+          <table class="spec-table">
+            <tr><td>VIN</td><td>${v.vin}</td></tr>
+            <tr><td>Engine</td><td>${v.engine}</td></tr>
+            <tr><td>Horsepower</td><td>${v.hp} hp</td></tr>
+            <tr><td>Transmission</td><td>${v.trans}</td></tr>
+            <tr><td>Fuel type</td><td>${v.fuel}</td></tr>
+            <tr><td>Exterior</td><td>${v.color}</td></tr>
+            <tr><td>Interior</td><td>Black leather</td></tr>
+            <tr><td>Mileage</td><td>${v.mileage.toLocaleString()} mi</td></tr>
+            <tr><td>Body style</td><td>${v.body}</td></tr>
+          </table>
+        ` : ""}
+        ${state.detailTab==='reviews' ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div class="stars">${'★'.repeat(Math.round(v.rating))}${'☆'.repeat(5-Math.round(v.rating))} <span class="mono" style="color:var(--silver-dim); font-size:13px;">${v.rating} · ${v.reviews} verified buyers</span></div>
+            <button class="btn btn-ghost btn-sm" data-modal="review">Write a review</button>
+          </div>
+          ${vReviews.length===0 ? `<p style="color:var(--silver-dim); font-size:14px;">No written reviews yet for this vehicle.</p>` :
+            vReviews.map(r=>`<div class="testi-card" style="margin-bottom:12px;"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><p class="quote">"${r.text}"</p><div class="testi-who"><div class="avatar">${r.name[0]}</div><div class="who-name">${r.name}</div></div></div>`).join("")}
+        ` : ""}
+      </div>
+
+      <div>
+        <div class="detail-price-card">
+          <div class="make">${v.brand}</div>
+          <h2 style="font-size:26px;">${v.year} ${v.model}</h2>
+          <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+            ${v.discount ? `<span class="old-price">${fmt$(v.price)}</span>`:''}<span class="price" style="font-size:28px;">${fmt$(finalPrice)}</span>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn btn-primary btn-block" data-modal="testdrive">Schedule test drive</button>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn btn-ghost btn-block" data-fav="${v.id}">${state.wishlist.has(v.id)?'♥ Saved':'♡ Save'}</button>
+            <button class="btn btn-ghost btn-block" data-compare="${v.id}">⇄ Compare</button>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn btn-ghost btn-sm" id="shareBtn" style="flex:1;">Share</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;" data-modal="tradein">Value my trade-in</button>
+          </div>
+
+          <div class="tabs" style="margin-top:24px;">
+            <button class="active" style="cursor:default; color:var(--white); border-color:var(--amber);">Financing calculator</button>
+          </div>
+          <div class="calc-row">
+            <div class="form-row"><label>Down payment</label><input type="number" id="dpDown" value="${Math.round(finalPrice*0.1)}"></div>
+            <div class="form-row"><label>APR %</label><input type="number" id="dpApr" value="6.5" step="0.1"></div>
+          </div>
+          <div class="form-row"><label>Term (months)</label>
+            <select id="dpTerm"><option>36</option><option>48</option><option selected>60</option><option>72</option></select>
+          </div>
+          <div class="calc-result"><span>Est. monthly payment</span><span class="amt" id="dpResult">$0</span></div>
+
+          <div class="seller-card">
+            <div class="avatar">CV</div>
+            <div>
+              <div class="who-name">Carvilla Certified Dealer</div>
+              <div class="who-role">Responds in ~10 minutes · (555) 010-2200</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-block" style="margin-top:12px;" data-nav="contact">Contact dealer</button>
+        </div>
+      </div>
+    </div>
+
+    ${similar.length ? `
+    <div class="section-head" style="margin-top:50px;"><h2 style="font-size:26px;">Similar vehicles</h2></div>
+    <div class="grid cols-3">${similar.map(carCard).join("")}</div>` : ""}
+  </section>`;
+}
+
+/* ---------- ABOUT ---------- */
+function renderAbout(){
+  return `
+  <section class="page-section wrap">
+    <div class="eyebrow">ABOUT CARVILLA</div>
+    <h1 style="font-size:clamp(32px,5vw,52px); margin-top:10px; max-width:760px;">Built by people who were tired of the old dealership playbook.</h1>
+    <p style="color:var(--silver-dim); font-size:16px; max-width:640px; margin-top:16px; line-height:1.7;">Carvilla started in 2019 as a small used-car lot with one rule: every price on the tag is the price you pay. That rule scaled into a full marketplace — inspection standards, financing tools, and a fleet spanning ten brands.</p>
+  </section>
+  <section class="page-section wrap">
+    <div class="grid cols-4">
+      ${[["12,400+","Cars sold"],["4.8","Average rating"],["37","Cities served"],["150","Point inspection"]].map(([n,l])=>`<div class="stat-block"><div class="num">${n}</div><div class="lbl">${l}</div></div>`).join("")}
+    </div>
+  </section>
+  <section class="page-section wrap">
+    <div class="grid cols-2">
+      <div class="feature-card"><h4 style="font-size:20px; margin-bottom:8px;">Our mission</h4><p style="color:var(--silver-dim); line-height:1.7;">Make buying a car as straightforward as buying anything else online — transparent, fast, and free of pressure tactics.</p></div>
+      <div class="feature-card"><h4 style="font-size:20px; margin-bottom:8px;">Our vision</h4><p style="color:var(--silver-dim); line-height:1.7;">A future where every used car comes with a verifiable history and every price is the real price, everywhere.</p></div>
+    </div>
+  </section>
+  <section class="page-section wrap">
+    <div class="section-head"><h2>Leadership team</h2></div>
+    <div class="grid cols-4">
+      ${[["Dana Ruiz","CEO & Co-founder",23],["Marcus Field","Head of Operations",14],["Elena Cho","VP Engineering",47],["Sam Aldridge","Head of Inspections",33]].map(([n,r,i])=>`
+      <div class="team-card"><img class="photo" src="https://i.pravatar.cc/400?img=${i}" alt="${n}"><h4 style="font-size:16px;">${n}</h4><p style="color:var(--silver-dim); font-size:13px;">${r}</p></div>`).join("")}
+    </div>
+  </section>
+  <section class="page-section wrap">
+    <div class="section-head"><h2>Awards & recognition</h2></div>
+    <div class="grid cols-3">
+      ${[["Auto Retail Awards","Best Digital Dealership 2025"],["DealerTech","Top 10 Innovators 2024"],["Consumer Trust Index","5-Star Rated Marketplace"]].map(([a,b])=>`<div class="feature-card"><h4>${a}</h4><p style="color:var(--silver-dim);">${b}</p></div>`).join("")}
+    </div>
+  </section>`;
+}
+
+/* ---------- SERVICES ---------- */
+function renderServices(){
+  const services = [
+    ["💳","Vehicle financing","Compare terms and get a real monthly payment estimate before you apply.", ()=>openModal("loan")],
+    ["🛡️","Insurance","Bundle coverage quotes from partner insurers at checkout."],
+    ["↺","Trade-in","Get an instant estimate on your current vehicle.", ()=>openModal("tradein")],
+    ["🔍","Vehicle inspection","Every listing passes a 150-point certified inspection."],
+    ["🔧","Maintenance","Scheduled service plans available at partner shops nationwide."],
+    ["🚚","Delivery","Home delivery available in 37 cities, typically within 3 days."]
+  ];
+  return `
+  <section class="page-section wrap">
+    <div class="section-head"><div><h2>Services</h2><p>Everything around the sale, handled in one place.</p></div></div>
+    <div class="grid cols-3">
+      ${services.map(([ic,t,d])=>`<div class="feature-card"><div class="ic">${ic}</div><h4>${t}</h4><p>${d}</p><button class="btn btn-ghost btn-sm" style="margin-top:14px;" data-nav="contact">Learn more</button></div>`).join("")}
+    </div>
+  </section>
+  <section class="page-section wrap">
+    <div class="finance-band">
+      <div><div class="eyebrow">TRADE-IN</div><h2 style="font-size:30px; margin-top:8px;">What's your car worth today?</h2><p style="color:var(--silver-dim); margin-top:10px;">Answer four quick questions for an instant estimate.</p></div>
+      <button class="btn btn-primary" data-modal="tradein">Start valuation →</button>
+    </div>
+  </section>`;
+}
+
+/* ---------- BLOG ---------- */
+const BLOG_POSTS = [
+  {cat:"Buying guides", title:"How to read a vehicle history report", excerpt:"The five sections that actually matter, and the two that don't.", img:IMGS[1]},
+  {cat:"Maintenance tips", title:"Winter checklist: 8 things to inspect before the first freeze", excerpt:"Battery, tires, and three fluids most owners forget.", img:IMGS[2]},
+  {cat:"Automotive news", title:"EV range claims vs. real-world driving", excerpt:"Why your mileage will vary — and by how much.", img:IMGS[3]},
+  {cat:"Buying guides", title:"Lease vs. buy: the math for 2026", excerpt:"A simple framework based on how long you actually keep cars.", img:IMGS[4]},
+  {cat:"Maintenance tips", title:"Brake pads: signs you're past the warning squeal", excerpt:"What that grinding sound is actually costing you.", img:IMGS[5]},
+  {cat:"Automotive news", title:"What changed in this year's crash-test ratings", excerpt:"Three categories got noticeably stricter.", img:IMGS[6]}
+];
+function renderBlog(){
+  const q = (state.blogQuery||"").toLowerCase();
+  const posts = BLOG_POSTS.filter(p=> (p.title+p.cat).toLowerCase().includes(q));
+  return `
+  <section class="page-section wrap">
+    <div class="section-head">
+      <div><h2>Blog</h2><p>Buying guides, maintenance tips, and automotive news.</p></div>
+      <input id="blogSearch" placeholder="Search articles…" style="max-width:260px;" value="${state.blogQuery||''}">
+    </div>
+    <div class="brand-strip" style="margin-bottom:24px;">
+      ${["All","Automotive news","Maintenance tips","Buying guides"].map(c=>`<button class="brand-pill ${c==='All'&&!state.blogQuery?'active':''}" data-blog-cat="${c}">${c}</button>`).join("")}
+    </div>
+    <div class="grid cols-3">
+      ${posts.map(p=>`<div class="car-card blog-card"><img src="${p.img}" alt="${p.title}"><div class="bb"><div class="blog-cat">${p.cat}</div><h3 style="font-size:18px; margin:6px 0;">${p.title}</h3><p style="color:var(--silver-dim); font-size:13.5px; line-height:1.5;">${p.excerpt}</p></div></div>`).join("")}
+    </div>
+    ${posts.length===0? `<div class="empty-state"><div class="ic">📰</div><p>No articles match that search.</p></div>`:""}
+  </section>`;
+}
+
+/* ---------- CONTACT ---------- */
+function renderContact(){
+  return `
+  <section class="page-section wrap">
+    <div class="section-head"><h2>Contact us</h2></div>
+    <div class="detail-layout">
+      <div class="detail-price-card">
+        <h4 style="margin-bottom:16px;">Send a message</h4>
+        <form id="contactForm">
+          <div class="two-col"><div class="form-row"><label>Name</label><input required></div><div class="form-row"><label>Email</label><input type="email" required></div></div>
+          <div class="form-row"><label>Subject</label><input required></div>
+          <div class="form-row"><label>Message</label><input required placeholder="How can we help?"></div>
+          <button class="btn btn-primary btn-block" type="submit">Send message</button>
+        </form>
+      </div>
+      <div>
+        <div class="feature-card" style="margin-bottom:16px;">
+          <div style="aspect-ratio:16/9; border-radius:10px; overflow:hidden; margin-bottom:14px;">
+            <iframe src="https://maps.google.com/maps?q=automotive%20dealership&t=&z=13&ie=UTF8&iwloc=&output=embed" width="100%" height="100%" style="border:0;" loading="lazy"></iframe>
+          </div>
+          <h4>Carvilla Motors HQ</h4>
+          <p style="color:var(--silver-dim); font-size:14px; margin-top:6px;">Phone: (555) 010-2200<br>Email: hello@carvilla.example<br>Hours: Mon–Sat 9am–7pm, Sun 11am–5pm</p>
+        </div>
+        <button class="btn btn-chrome btn-block" id="chatBtn">💬 Start live chat</button>
+      </div>
+    </div>
+    <div class="section-head" style="margin-top:56px;"><h2>Frequently asked questions</h2></div>
+    <div style="max-width:760px;">
+      ${[
+        ["Can I return a vehicle after purchase?","Yes — every purchase includes a 7-day, 500-mile return window, no questions asked."],
+        ["Do you ship out of state?","Home delivery is available in 37 cities; otherwise we arrange common-carrier shipping at cost."],
+        ["Is the listed price negotiable?","No — Carvilla uses fixed, transparent pricing so every buyer pays the same fair price."],
+        ["How does the trade-in estimate work?","It's generated from your vehicle's year, mileage, and market comps, confirmed after inspection."]
+      ].map(([q,a])=>`<div class="faq-item"><div class="faq-q">${q}<span class="chev">▾</span></div><div class="faq-a">${a}</div></div>`).join("")}
+    </div>
+  </section>`;
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderDashboard(){
+  if(!state.user){
+    return `<section class="page-section wrap">
+      <div class="empty-state" style="max-width:420px; margin:0 auto;">
+        <div class="ic">🔒</div>
+        <h3 style="font-size:20px; margin-bottom:8px;">Sign in to view your dashboard</h3>
+        <p style="margin-bottom:18px;">Track wishlist items, bookings, and loan applications.</p>
+        <button class="btn btn-primary" data-modal="login">Sign in</button>
+      </div>
+    </section>`;
+  }
+  const tab = state.dashTab || "profile";
+  const nav = [["profile","Profile"],["wishlist","Wishlist"],["bookings","Test drives"],["loans","Loan applications"],["messages","Messages"]];
+  return `
+  <section class="page-section wrap">
+    <div class="section-head"><h2>Your dashboard</h2></div>
+    <div class="dash-layout">
+      <div class="dash-nav">${nav.map(([id,l])=>`<button class="${tab===id?'active':''}" data-dashtab="${id}">${l}</button>`).join("")}</div>
+      <div class="dash-panel">${dashboardPanel(tab)}</div>
+    </div>
+  </section>`;
+}
+function dashboardPanel(tab){
+  if(tab==="profile") return `
+    <h3 style="font-size:20px; margin-bottom:16px;">Profile</h3>
+    <div class="form-row"><label>Name</label><input value="${state.user.name}" id="profName"></div>
+    <div class="form-row"><label>Email</label><input value="${state.user.email}" id="profEmail"></div>
+    <button class="btn btn-primary" id="saveProfile">Save changes</button>`;
+  if(tab==="wishlist"){
+    const items = [...state.wishlist].map(id=>state.vehicles.find(v=>v.id===id));
+    return items.length? `<div class="grid cols-3">${items.map(carCard).join("")}</div>` : `<div class="empty-state"><div class="ic">♡</div><p>No saved vehicles yet.</p></div>`;
+  }
+  if(tab==="bookings"){
+    return state.bookings.length ? `<table class="table-simple"><tr><th>Vehicle</th><th>Date</th><th>Time</th><th>Status</th></tr>
+      ${state.bookings.map(b=>`<tr><td>${b.vehicle}</td><td>${b.date}</td><td>${b.time}</td><td><span class="status-pill ${b.status}">${b.status}</span></td></tr>`).join("")}</table>`
+      : `<div class="empty-state"><div class="ic">📅</div><p>No test drives booked yet.</p></div>`;
+  }
+  if(tab==="loans"){
+    return state.loanApps.length ? `<table class="table-simple"><tr><th>#</th><th>Status</th></tr>${state.loanApps.map((l,i)=>`<tr><td>APP-${1000+i}</td><td><span class="status-pill ${l.status}">${l.status}</span></td></tr>`).join("")}</table>`
+      : `<div class="empty-state"><div class="ic">💳</div><p>No loan applications submitted.</p></div>`;
+  }
+  if(tab==="messages") return `<div class="empty-state"><div class="ic">✉️</div><p>No messages yet — dealer replies will appear here.</p></div>`;
+  return "";
+}
+
+/* ---------- EVENT WIRING FOR RENDERED VIEWS ---------- */
+function wireRouteEvents(){
+  // card interactions
+  $$("[data-open-detail]").forEach(el=> el.onclick = ()=>{ state.detailId=+el.dataset.openDetail; state.detailTab="overview"; state.activeThumb=0; go("detail"); });
+  $$("[data-fav]").forEach(el=> el.onclick = e=>{ e.stopPropagation(); const id=+el.dataset.fav; state.wishlist.has(id)? state.wishlist.delete(id): state.wishlist.add(id); render(); });
+  $$("[data-compare]").forEach(el=> el.onclick = e=>{
+    e.stopPropagation(); const id=+el.dataset.compare;
+    if(state.compare.has(id)) state.compare.delete(id);
+    else { if(state.compare.size>=3){ toast("You can compare up to 3 vehicles."); return; } state.compare.add(id); }
+    render();
+  });
+  $$("[data-brand-jump]").forEach(el=> el.onclick=()=>{ state.filters.brand=new Set([el.dataset.brandJump]); go("inventory"); });
+
+  // home
+  $("#hsSearchBtn") && ($("#hsSearchBtn").onclick = ()=>{
+    const make=$("#hsMake").value, model=$("#hsModel").value, price=$("#hsPrice").value, year=$("#hsYear").value, fuel=$("#hsFuel").value;
+    state.filters.brand = make? new Set([make]) : new Set();
+    state.filters.fuel = fuel? new Set([fuel]) : new Set();
+    if(price) state.filters.priceMax = +price;
+    if(year) state.filters.yearMin = +year;
+    state.searchQuery = model;
+    go("inventory");
+  });
+  wireCalc("#qePrice","#qeDown","#qeApr",null,"#qeResult");
+  $("#newsletterForm") && ($("#newsletterForm").onsubmit = e=>{ e.preventDefault(); toast("Subscribed! Check your inbox for a confirmation."); e.target.reset(); });
+
+  // inventory
+  $("#invSearch") && ($("#invSearch").oninput = e=>{ state.searchQuery = e.target.value; state.page=1; renderInvOnly(); });
+  $$("[data-f]").forEach(cb=> cb.onchange = ()=>{
+    const set = state.filters[cb.dataset.f];
+    cb.checked ? set.add(cb.value) : set.delete(cb.value);
+    state.page=1; renderInvOnly();
+  });
+  $("#priceRange") && ($("#priceRange").oninput = e=>{ state.filters.priceMax = +e.target.value; $("#priceLabel").textContent = fmt$(state.filters.priceMax); });
+  $("#priceRange") && ($("#priceRange").onchange = renderInvOnly);
+  $("#yearRange") && ($("#yearRange").oninput = e=>{ state.filters.yearMin = +e.target.value; renderInvOnly(); });
+  $("#clearFilters") && ($("#clearFilters").onclick = ()=>{ state.filters={brand:new Set(),body:new Set(),fuel:new Set(),trans:new Set(),priceMax:120000,yearMin:2021}; state.searchQuery=""; state.wishlistOnly=false; state.page=1; renderInvOnly(); });
+  $("#sortSelect") && ($("#sortSelect").onchange = e=>{ state.sort=e.target.value; renderInvOnly(); });
+  $$("[data-view]").forEach(b=> b.onclick=()=>{ state.view=b.dataset.view; renderInvOnly(); });
+  $$("[data-page]").forEach(b=> b.onclick=()=>{ state.page=+b.dataset.page; renderInvOnly(); window.scrollTo({top:0,behavior:'smooth'}); });
+
+  // detail
+  $$("[data-thumb]").forEach(t=> t.onclick=()=>{ state.activeThumb=+t.dataset.thumb; renderDetailOnly(); });
+  $("#galleryMain") && ($("#galleryMain").onclick = ()=> $("#galleryMain").classList.toggle("zoomed"));
+  $$("[data-tab]").forEach(t=> t.onclick=()=>{ state.detailTab=t.dataset.tab; renderDetailOnly(); });
+  $("#shareBtn") && ($("#shareBtn").onclick = ()=> toast("Link copied to clipboard (simulated)."));
+  wireCalc("#dpPrice","#dpDown","#dpApr","#dpTerm","#dpResult", true);
+
+  // blog
+  $("#blogSearch") && ($("#blogSearch").oninput = e=>{ state.blogQuery=e.target.value; renderBlogOnly(); });
+  $$("[data-blog-cat]").forEach(b=> b.onclick=()=>{ state.blogQuery = b.dataset.blogCat==="All"? "" : b.dataset.blogCat; renderBlogOnly(); });
+
+  // contact
+  $("#contactForm") && ($("#contactForm").onsubmit = e=>{ e.preventDefault(); toast("Message sent — a dealer will follow up by email."); e.target.reset(); });
+  $("#chatBtn") && ($("#chatBtn").onclick = ()=> toast("Live chat connecting… an agent will be with you shortly (simulated)."));
+  $$(".faq-item").forEach(f=> f.querySelector(".faq-q").onclick = ()=> f.classList.toggle("open"));
+
+  // dashboard
+  $$("[data-dashtab]").forEach(b=> b.onclick=()=>{ state.dashTab=b.dataset.dashtab; render(); });
+  $("#saveProfile") && ($("#saveProfile").onclick = ()=>{ state.user.name=$("#profName").value; state.user.email=$("#profEmail").value; toast("Profile updated."); render(); });
+}
+function renderInvOnly(){ $("#app").innerHTML = renderInventory(); wireRouteEvents(); updateBadges(); }
+function renderDetailOnly(){ $("#app").innerHTML = renderDetail(); wireRouteEvents(); updateBadges(); }
+function renderBlogOnly(){ $("#app").innerHTML = renderBlog(); wireRouteEvents(); }
+
+function wireCalc(priceSel, downSel, aprSel, termSel, resultSel, isDetail){
+  const priceEl = priceSel && $(priceSel);
+  const downEl = $(downSel), aprEl = $(aprSel), termEl = termSel && $(termSel), resultEl = $(resultSel);
+  if(!downEl || !aprEl || !resultEl) return;
+  function calc(){
+    const price = isDetail ? (state.vehicles.find(v=>v.id===state.detailId).price - state.vehicles.find(v=>v.id===state.detailId).discount) : (+priceEl.value || 0);
+    const down = +downEl.value || 0;
+    const apr = (+aprEl.value || 0)/100/12;
+    const term = termEl ? +termEl.value : 60;
+    const principal = Math.max(0, price - down);
+    const payment = apr===0 ? principal/term : principal * (apr*Math.pow(1+apr,term)) / (Math.pow(1+apr,term)-1);
+    resultEl.textContent = "$" + Math.round(payment).toLocaleString("en-US") + "/mo";
+  }
+  [priceEl,downEl,aprEl,termEl].forEach(el=> el && el.addEventListener("input", calc));
+  calc();
+}
+
+/* ---------- INIT ---------- */
+go("home");
+</script>
+</body>
+</html>
